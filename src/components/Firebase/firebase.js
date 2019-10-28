@@ -18,6 +18,9 @@ class Firebase {
     app.initializeApp(config);
     this.auth = app.auth();
     this.db = app.firestore();
+
+    /* Helper */
+    this.fieldValue = app.firestore.FieldValue;
   }
 
   // *** Auth API ***
@@ -38,6 +41,10 @@ class Firebase {
   // *** User API ***
   user = uid => this.db.doc(`users/${uid}`);
   users = () => this.db.collection('users');
+
+  // *** Events API ***
+  event = uid => this.db.doc(`events/${uid}`);
+  events = () => this.db.collection('events');
 }
 
 export default Firebase;

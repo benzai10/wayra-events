@@ -1,4 +1,5 @@
 import React from 'react';
+import Events from '../Events';
 
 const styles = {
   root: {
@@ -12,6 +13,7 @@ const styles = {
 const Landing = () => (
   <div style={styles.root}>
     <h1 style={styles.title}>Wayra Events 2019</h1>
+    <Events />
   </div>
 );
 
