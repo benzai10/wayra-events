@@ -1,6 +1,7 @@
 import app from 'firebase/app';
 import 'firebase/auth';
 import 'firebase/firestore';
+import 'firebase/storage';
 
 const config = {
   apiKey: "AIzaSyCeiHn8UskG8ROKyZnpZqGFTXcuaKyw6WQ",
@@ -18,9 +19,11 @@ class Firebase {
     app.initializeApp(config);
     this.auth = app.auth();
     this.db = app.firestore();
+    this.storage = app.storage();
 
     /* Helper */
     this.fieldValue = app.firestore.FieldValue;
+
   }
 
   // *** Auth API ***
@@ -45,7 +48,8 @@ class Firebase {
   // *** Events API ***
   event = uid => this.db.doc(`events/${uid}`);
   events = () => this.db.collection('events');
+
+  storageRef = () => this.storage.ref();
 }
 
 export default Firebase;
-

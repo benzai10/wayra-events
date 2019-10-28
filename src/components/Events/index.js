@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { compose } from 'recompose';
-import { withFirebase } from '../Firebase';
+import { withFirebase, storage } from '../Firebase';
 import Button from '@material-ui/core/Button';
 import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
@@ -19,6 +19,10 @@ const styles = {
   buttonContainer: {
     textAlign: 'center',
   },
+  image: {
+    height: 150,
+    objectFit: 'cover',
+  },
   loading: {
     textAlign: 'center',
   },
@@ -33,8 +37,14 @@ class Events extends Component {
       events: [],
       loading: false,
       open: false,
+      openProgress: false,
       title: '',
       description: '',
+      imageUrl: '',
+    };
+
+    this.setRef = ref => {
+      this.file = ref;
     };
   }
 
@@ -43,6 +53,7 @@ class Events extends Component {
 
     this.unsubscribe = this.props.firebase
       .events()
+      .orderBy('createdAt', 'desc')
       .onSnapshot(snapshot => {
 	if (snapshot.size) {
 	  let events = [];
@@ -79,23 +90,40 @@ class Events extends Component {
   }
 
   handleSubmit = () => {
-    this.props.firebase.events().add({
-      createdAt: this.props.firebase.fieldValue.serverTimestamp(),
-      title: this.state.title,
-      description: this.state.description
-    });
+    this.setState({ openProgress: true });
 
-    this.setState({
-      title: '',
-      description: '',
-    });
+    var mainImage = this.props.firebase.storageRef().child(this.file.files[0].name);
+
+    mainImage.put(this.file.files[0])
+      .then(snapshot => {
+        mainImage.getDownloadURL()
+          .then(url => {
+            this.setState({ imageUrl: url, openProgress: false });
+            this.writeEvent();
+          });
+      });
 
     this.handleClose();
   }
 
+  writeEvent = () => {
+    this.props.firebase.events().add({
+      createdAt: this.props.firebase.fieldValue.serverTimestamp(),
+      title: this.state.title,
+      description: this.state.description,
+      imageUrl: this.state.imageUrl,
+    });
+
+    this.setState({
+      openProgress: false,
+      title: '',
+      description: '',
+    });
+  }
+
 
   render() {
-    const { loading, events, open } = this.state;
+    const { loading, events, open, openProgress } = this.state;
 
     return (
       <div>
@@ -104,6 +132,17 @@ class Events extends Component {
 	    Add Event
 	  </Button>
 	</div>
+        <Dialog
+          open={openProgress}
+          fullWidth
+          maxWidth="sm"
+        >
+          <DialogContent>
+	    <div style={styles.loading}>
+	      <CircularProgress color="secondary"/>
+	    </div>
+          </DialogContent>
+        </Dialog>
         <Dialog
           open={open}
           onClose={this.handleClose}
@@ -131,6 +170,7 @@ class Events extends Component {
 		onChange={this.handleChange}
 		fullWidth
 	      />
+              <input type="file" ref={this.setRef} />
 	    </form>
 	    <DialogActions>
 	      <Button onClick={this.handleClose}>
@@ -162,6 +202,7 @@ class Events extends Component {
                <Card>
                  <CardContent>
 		   <h3>{evt.title}</h3>
+                   <img src={evt.imageUrl} alt="event-image" style={styles.image} />
                    <p>{evt.description}</p>
 		 </CardContent>
 	       </Card>
