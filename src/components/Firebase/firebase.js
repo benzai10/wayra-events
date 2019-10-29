@@ -23,6 +23,7 @@ class Firebase {
 
     /* Helper */
     this.fieldValue = app.firestore.FieldValue;
+    this.timestamp = app.firestore.Timestamp;
 
   }
 

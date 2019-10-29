@@ -4,6 +4,11 @@ import { withFirebase } from '../Firebase';
 import { withAuthorization } from '../Session';
 import { AuthUserContext } from '../Session';
 import Button from '@material-ui/core/Button';
+import Card from '@material-ui/core/Card';
+import CardActionArea from '@material-ui/core/CardActionArea';
+import CardActions from '@material-ui/core/CardActions';
+import CardContent from '@material-ui/core/CardContent';
+import CardMedia from '@material-ui/core/CardMedia';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Dialog from '@material-ui/core/Dialog';
 import DialogTitle from '@material-ui/core/DialogTitle';
@@ -18,6 +23,12 @@ import ListItemAvatar from '@material-ui/core/ListItemAvatar';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import TextField from '@material-ui/core/TextField';
+import {
+  MuiPickersUtilsProvider,
+  KeyboardTimePicker,
+  KeyboardDatePicker,
+} from '@material-ui/pickers';
+
 
 const styles = {
   buttons: {
@@ -25,9 +36,22 @@ const styles = {
   buttonContainer: {
     textAlign: 'center',
   },
+  card: {
+    margin: 15,
+  },
+  cardMedia: {
+    height: 200,
+  },
+  eventDescriptionCard: {
+    fontSize: '1.2em',
+  },
   image: {
     paddingRight: 20,
     width: 150,
+  },
+  imageMobile: {
+    paddingRight: 10,
+    width: 80,
   },
   loading: {
     textAlign: 'center',
@@ -51,8 +75,15 @@ class Events extends Component {
     this.state = {
       currentEvent: {},
       dialogAction: 'add',
+      eventFromDate: '',
+      eventUntilDate: '',
+      eventFromTime: '',
+      eventUntilTime: '',
       events: [],
+      eventsPassed: [],
+      eventsUpcoming: [],
       loading: false,
+      location: '',
       open: false,
       openEdit: false,
       openProgress: false,
@@ -72,18 +103,18 @@ class Events extends Component {
 
     this.unsubscribe = this.props.firebase
       .events()
-      .orderBy('createdAt', 'desc')
+      .orderBy('eventFromDate', 'asc')
       .onSnapshot(snapshot => {
 	if (snapshot.size) {
 	  let events = [];
 	  snapshot.forEach(doc =>
 			   events.push({ ...doc.data(), uid: doc.id }),
 			  );
-
 	  this.setState({
             events: events,
 	    loading: false,
 	  });
+          this.compileEvents(events);
 	} else {
 	  this.setState({ events: null, loading: false });
 	}
@@ -94,6 +125,13 @@ class Events extends Component {
     this.unsubscribe();
   }
 
+  compileEvents = events => {
+    this.setState({
+      eventsUpcoming: events.filter(evt => evt.eventFromDate.seconds > (Date.now() / 1000)),
+      eventsPassed: events.filter(evt => evt.eventFromDate.seconds < (Date.now() / 1000)).reverse(),
+    });
+  }
+
   handleOpen = () => {
     this.setState({ open: true });
   }
@@ -102,6 +140,11 @@ class Events extends Component {
     this.setState({
       currentEvent: event,
       dialogAction: 'edit',
+      eventFromDate: new Date(event.eventFromDate.seconds * 1000).toISOString().slice(0,10),
+      eventFromTime: new Date(event.eventFromDate.seconds * 1000).toISOString().slice(11,16),
+      eventUntilDate: new Date(event.eventUntilDate.seconds * 1000).toISOString().slice(0,10),
+      eventUntilTime: new Date(event.eventUntilDate.seconds * 1000).toISOString().slice(11,16),
+      location: event.location,
       title: event.title,
       description: event.description,
     });
@@ -111,6 +154,14 @@ class Events extends Component {
   handleClose = () => {
     this.setState({
       open: false,
+      eventFromDate: '',
+      eventFromTime: '',
+      eventUntilDate: '',
+      eventUntilTime: '',
+      location: '',
+      title: '',
+      description: '',
+      imageUrl: '',
       dialogAction: 'add',
     });
   }
@@ -130,11 +181,15 @@ class Events extends Component {
 	.then(snapshot => {
 	  mainImage.getDownloadURL()
 	    .then(url => {
-	      this.setState({ imageUrl: url, openProgress: false });
+	      this.setState({
+                imageUrl: url,
+                openProgress: false
+              });
 	      this.writeEvent();
 	    });
 	});
     } else {
+      this.setState({ imageUrl: "https://firebasestorage.googleapis.com/v0/b/wayra-events.appspot.com/o/event-placeholder.png?alt=media&token=42fe7a5f-bcb5-40f5-b224-8e5ee8cd1f47" });
       this.writeEvent();
     }
     this.handleClose();
@@ -144,14 +199,24 @@ class Events extends Component {
     if (this.state.dialogAction === 'add') {
       this.props.firebase.events().add({
 	createdAt: this.props.firebase.fieldValue.serverTimestamp(),
+        eventFromDate: this.props.firebase.timestamp.fromDate(new Date(`${this.state.eventFromDate}T${this.state.eventFromTime}`)),
+        eventUntilDate: this.props.firebase.timestamp.fromDate(new Date(`${this.state.eventFromDate}T${this.state.eventUntilTime}`)),
+        location: this.state.location,
 	title: this.state.title,
 	description: this.state.description,
 	imageUrl: this.state.imageUrl,
       });
     } else {
+      if (this.state.imageUrl === '') {
+	this.setState({ imageUrl: "https://firebasestorage.googleapis.com/v0/b/wayra-events.appspot.com/o/event-placeholder.png?alt=media&token=42fe7a5f-bcb5-40f5-b224-8e5ee8cd1f47" });
+      }
       this.props.firebase.event(this.state.currentEvent.uid).update({
+        eventFromDate: this.props.firebase.timestamp.fromDate(new Date(`${this.state.eventFromDate}T${this.state.eventFromTime}`)),
+        eventUntilDate: this.props.firebase.timestamp.fromDate(new Date(`${this.state.eventFromDate}T${this.state.eventUntilTime}`)),
+        location: this.state.location,
 	title: this.state.title,
 	description: this.state.description,
+        imageUrl: this.state.imageUrl,
       });
     }
 
@@ -174,7 +239,15 @@ class Events extends Component {
 
 
   render() {
-    const { loading, events, open, openProgress, value } = this.state;
+    const {
+      loading,
+      events,
+      eventsUpcoming,
+      eventsPassed,
+      open,
+      openProgress,
+      value
+    } = this.state;
 
     return (
       <div>
@@ -216,6 +289,42 @@ class Events extends Component {
             </DialogTitle>
             <form>
 	      <TextField
+		name="eventFromDate"
+		type="text"
+		label="Event Date"
+		placeholder="YYYY-MM-DD"
+		value={this.state.eventFromDate}
+		onChange={this.handleChange}
+		fullWidth
+	      />
+	      <TextField
+		name="eventFromTime"
+		type="text"
+		label="Event Start Time"
+		placeholder="HH:MM"
+		value={this.state.eventFromTime}
+		onChange={this.handleChange}
+		fullWidth
+	      />
+	      <TextField
+		name="eventUntilTime"
+		type="text"
+		label="Event End Time"
+		placeholder="HH:MM"
+		value={this.state.eventUntilTime}
+		onChange={this.handleChange}
+		fullWidth
+	      />
+	      <TextField
+		name="location"
+		type="text"
+		label="Location"
+		placeholder="Enter location"
+		value={this.state.location}
+		onChange={this.handleChange}
+		fullWidth
+	      />
+	      <TextField
 		name="title"
 		type="text"
 		label="Title"
@@ -231,8 +340,10 @@ class Events extends Component {
 		placeholder="Enter description"
 		value={this.state.description}
 		onChange={this.handleChange}
+                multiline
 		fullWidth
 	      />
+              <p style={{ marginTop: 15, marginBottom: 10 }}>Upload Event Image</p>
               <input type="file" ref={this.setRef} />
 	    </form>
 	    <DialogActions>
@@ -271,38 +382,184 @@ class Events extends Component {
 		   <Tab style={styles.tab} label="PASSED" />
 		 </Tabs>
 		 <div value={value} index={0} hidden={value !== 0}>
-		   <List>
-		     {events.map(evt => (
-		       <div>
-			 <ListItem alignItems="flex-start">
-			   <ListItemAvatar>
-			     <img src={evt.imageUrl} alt="" style={styles.image} />
-			   </ListItemAvatar>
-			   <ListItemText
-			     primary={evt.title}
-			     secondary={evt.description}
-			   />
-			 </ListItem>
-			 {this.context
-			  ?
-			  <div style={styles.buttons}>
-			    <Button onClick={this.handleEdit(evt)}>
-	                      Edit
-	                    </Button>
-			    <Button onClick={this.handleDelete(evt)}>
-	                      Delete
-	                    </Button>
-	                  </div>
-	                  :
-	                  <div></div>
-	                 }
-			 <Divider variant="inset" component="li" />
-                       </div>
-		     ))}
-                   </List>
+		   {isMobileDevice()
+		    ?
+		    <div>
+		      {eventsUpcoming.map(evt => (
+			<Card
+			  style={styles.card} 
+			  disableTypography={true}
+			>
+			  <CardActionArea>
+                            <CardContent>
+			      <h3>{new Date(evt.eventFromDate.seconds*1000).toDateString()}</h3>
+			      <h4>{new Date(evt.eventFromDate.seconds*1000).toTimeString().slice(0,5)} - {new Date(evt.eventUntilDate.seconds*1000).toTimeString().slice(0,5)}</h4>
+                              <h4>{evt.location}</h4>
+                            </CardContent>
+                            <CardMedia
+                              image={evt.imageUrl}
+                              style={styles.cardMedia}
+                            />
+                            <CardContent>
+			      <h2>{evt.title}</h2>
+			      <div
+                                disableTypography={true}
+                                dangerouslySetInnerHTML={{__html: evt.description}}
+                                style={styles.eventDescriptionCard}
+                              />
+                            </CardContent>
+                          </CardActionArea>
+                          <CardActions>
+			    {this.context
+			     ?
+			     <div style={styles.buttons}>
+			       <Button onClick={this.handleEdit(evt)}>
+				 Edit
+			       </Button>
+			       <Button onClick={this.handleDelete(evt)}>
+				 Delete
+			       </Button>
+			     </div>
+			     :
+			     <div></div>
+			    }
+			  </CardActions>
+                        </Card>
+		      ))
+		      }
+		    </div>
+		    :
+		    <List>
+		      {eventsUpcoming.map(evt => (
+			<div>
+			  <ListItem alignItems="flex-start">
+			    <ListItemAvatar>
+			      <img src={evt.imageUrl} alt="" style={styles.image} />
+			    </ListItemAvatar>
+			    <ListItemText
+			      primary={
+				<div>
+				  <span>{new Date(evt.eventFromDate.seconds*1000).toDateString()}</span>
+				  <p>{new Date(evt.eventFromDate.seconds*1000).toTimeString().slice(0,5)} - {new Date(evt.eventUntilDate.seconds*1000).toTimeString().slice(0,5)}</p>
+				</div>
+                              }
+			      secondary={evt.location}
+			      style={{ width: '40%'}}
+			    />
+			    <ListItemText
+			      primary={evt.title}
+			      secondary={<div dangerouslySetInnerHTML={{__html: evt.description}} />}
+			      style={{ width: '100%'}}
+			    />
+			    {this.context
+			     ?
+			     <div style={styles.buttons}>
+			       <Button onClick={this.handleEdit(evt)}>
+				 Edit
+			       </Button>
+			       <Button onClick={this.handleDelete(evt)}>
+				 Delete
+			       </Button>
+			     </div>
+			     :
+			     <div></div>
+			    }
+			  </ListItem>
+			  <Divider variant="inset" component="li" />
+		        </div>
+		      ))}
+		    </List>
+		   }
 		 </div>
 		 <div value={value} index={1} hidden={value !== 1}>
-                   Passed events come here
+		   {isMobileDevice()
+		    ?
+		    <div>
+		      {eventsPassed.map(evt => (
+			<Card
+			  style={styles.card} 
+			  disableTypography={true}
+			>
+			  <CardActionArea>
+                            <CardContent>
+			      <h3>{new Date(evt.eventDate.seconds*1000).toDateString()}</h3>
+			      <h4>{new Date(evt.eventFromDate.seconds*1000).toTimeString().slice(0,5)} - {new Date(evt.eventUntilDate.seconds*1000).toTimeString().slice(0,5)}</h4>
+                              <h4>{evt.location}</h4>
+                            </CardContent>
+                            <CardMedia
+                              image={evt.imageUrl}
+                              style={styles.cardMedia}
+                            />
+                            <CardContent>
+			      <h2>{evt.title}</h2>
+			      <div
+                                disableTypography={true}
+                                dangerouslySetInnerHTML={{__html: evt.description}}
+                                style={styles.eventDescriptionCard}
+                              />
+                            </CardContent>
+                          </CardActionArea>
+                          <CardActions>
+			    {this.context
+			     ?
+			     <div style={styles.buttons}>
+			       <Button onClick={this.handleEdit(evt)}>
+				 Edit
+			       </Button>
+			       <Button onClick={this.handleDelete(evt)}>
+				 Delete
+			       </Button>
+			     </div>
+			     :
+			     <div></div>
+			    }
+			  </CardActions>
+                        </Card>
+		      ))
+		      }
+		    </div>
+		    :
+		    <List>
+		      {eventsPassed.map(evt => (
+			<div>
+			  <ListItem alignItems="flex-start">
+			    <ListItemAvatar>
+			      <img src={evt.imageUrl} alt="" style={styles.image} />
+			    </ListItemAvatar>
+			    <ListItemText
+			      primary={
+				<div>
+				  <span>{new Date(evt.eventFromDate.seconds*1000).toDateString()}</span>
+				  <p>{new Date(evt.eventFromDate.seconds*1000).toTimeString().slice(0,5)} - {new Date(evt.eventUntilDate.seconds*1000).toTimeString().slice(0,5)}</p>
+				</div>
+                              }
+			      secondary={evt.location}
+			      style={{ width: '40%'}}
+			    />
+			    <ListItemText
+			      primary={evt.title}
+			      secondary={<div dangerouslySetInnerHTML={{__html: evt.description}} />}
+			      style={{ width: '100%'}}
+			    />
+			    {this.context
+			     ?
+			     <div style={styles.buttons}>
+			       <Button onClick={this.handleEdit(evt)}>
+				 Edit
+			       </Button>
+			       <Button onClick={this.handleDelete(evt)}>
+				 Delete
+			       </Button>
+			     </div>
+			     :
+			     <div></div>
+			    }
+			  </ListItem>
+			  <Divider variant="inset" component="li" />
+		        </div>
+		      ))}
+		    </List>
+		   }
 		 </div>
 	       </div>
            </Grid>

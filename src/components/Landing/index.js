@@ -6,6 +6,7 @@ const styles = {
     marginTop: 80,
   },
   title: {
+    fontSize: '1.3em',
     textAlign: 'center',
   }
 };
