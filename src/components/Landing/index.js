@@ -11,8 +11,8 @@ const styles = {
 };
 
 const Landing = () => (
-  <div style={styles.root}>
-    <h1 style={styles.title}>Wayra Events 2019</h1>
+  <div>
+    <h1 style={styles.title}>Wayra Events</h1>
     <Events />
   </div>
 );

@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { compose } from 'recompose';
 import { withFirebase, storage } from '../Firebase';
+import { AuthUserContext } from '../Session';
 import Button from '@material-ui/core/Button';
 import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
@@ -13,6 +14,8 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import Grid from '@material-ui/core/Grid';
+import Tabs from '@material-ui/core/Tabs';
+import Tab from '@material-ui/core/Tab';
 import TextField from '@material-ui/core/TextField';
 
 const styles = {
@@ -28,8 +31,17 @@ const styles = {
   },
 };
 
+function isMobileDevice() {
+  return (
+    typeof window.orientation !== "undefined" ||
+    navigator.userAgent.indexOf("IEMobile") !== -1
+  );
+}
+
 
 class Events extends Component {
+  static contextType = AuthUserContext;
+
   constructor (props) {
     super(props);
 
@@ -41,6 +53,7 @@ class Events extends Component {
       title: '',
       description: '',
       imageUrl: '',
+      value: 0,
     };
 
     this.setRef = ref => {
@@ -121,17 +134,31 @@ class Events extends Component {
     });
   }
 
+  handleTabChange = (event, newValue) => {
+    this.setState({
+      value: newValue
+    });
+  }
+
 
   render() {
-    const { loading, events, open, openProgress } = this.state;
+    const { loading, events, open, openProgress, value } = this.state;
 
     return (
       <div>
-	<div style={styles.buttonContainer}>
-	  <Button onClick={this.handleOpen}>
-	    Add Event
-	  </Button>
-	</div>
+	<AuthUserContext.Consumer>
+	  {authUser =>
+	   authUser ? (
+	     <div style={styles.buttonContainer}>
+	       <Button onClick={this.handleOpen}>
+		 Add Event
+	       </Button>
+	     </div>
+	   )
+	   :
+	   <div></div>
+	  }
+	</AuthUserContext.Consumer>
         <Dialog
           open={openProgress}
           fullWidth
@@ -191,23 +218,36 @@ class Events extends Component {
 
 	 <Grid
 	   container
-	   spacing={2}
+	   spacing={0}
+           direction="row"
+           justify="center"
+           alignItems="center"
 	 >
-	   {events.map(evt => (
-             <Grid
-               item
-               key={evt.uid}
-               sm={4}
-             >
-               <Card>
-                 <CardContent>
-		   <h3>{evt.title}</h3>
-                   <img src={evt.imageUrl} alt="event-image" style={styles.image} />
-                   <p>{evt.description}</p>
-		 </CardContent>
-	       </Card>
-             </Grid>
-	   ))}
+	   <Grid item xs={12} style={{ maxWidth: isMobileDevice() ? '100%' : 900 }}>
+	       <div>
+		 <Tabs
+		   value={value}
+		   onChange={this.handleTabChange}
+		   aria-label="simple tabs example"
+		   variant="fullWidth"
+		 >
+		   <Tab style={styles.tab} label="UPCOMING" />
+		   <Tab style={styles.tab} label="PASSED" />
+		 </Tabs>
+		 <div value={value} index={0} hidden={value !== 0}>
+		   {events.map(evt => (
+		     <div>
+		       <h3>{evt.title}</h3>
+		       <img src={evt.imageUrl} alt="event-image" style={styles.image} />
+		       <p>{evt.description}</p>
+		     </div>
+		   ))}
+		 </div>
+		 <div value={value} index={1} hidden={value !== 1}>
+                   Passed events come here
+		 </div>
+	       </div>
+           </Grid>
 	 </Grid>
 	}
       </div>
