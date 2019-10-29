@@ -1,30 +1,33 @@
 import React, { Component } from 'react';
 import { compose } from 'recompose';
-import { withFirebase, storage } from '../Firebase';
+import { withFirebase } from '../Firebase';
+import { withAuthorization } from '../Session';
 import { AuthUserContext } from '../Session';
 import Button from '@material-ui/core/Button';
-import Card from '@material-ui/core/Card';
-import CardContent from '@material-ui/core/CardContent';
-import CardActions from '@material-ui/core/CardActions';
-import CardHeader from '@material-ui/core/CardHeader';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Dialog from '@material-ui/core/Dialog';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
+import Divider from '@material-ui/core/Divider';
 import Grid from '@material-ui/core/Grid';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemText from '@material-ui/core/ListItemText';
+import ListItemAvatar from '@material-ui/core/ListItemAvatar';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import TextField from '@material-ui/core/TextField';
 
 const styles = {
+  buttons: {
+  },
   buttonContainer: {
     textAlign: 'center',
   },
   image: {
-    height: 150,
-    objectFit: 'cover',
+    paddingRight: 20,
+    width: 150,
   },
   loading: {
     textAlign: 'center',
@@ -46,9 +49,12 @@ class Events extends Component {
     super(props);
 
     this.state = {
+      currentEvent: {},
+      dialogAction: 'add',
       events: [],
       loading: false,
       open: false,
+      openEdit: false,
       openProgress: false,
       title: '',
       description: '',
@@ -92,8 +98,21 @@ class Events extends Component {
     this.setState({ open: true });
   }
 
+  handleEdit = (event) => () => {
+    this.setState({
+      currentEvent: event,
+      dialogAction: 'edit',
+      title: event.title,
+      description: event.description,
+    });
+    this.handleOpen();
+  }
+
   handleClose = () => {
-    this.setState({ open: false });
+    this.setState({
+      open: false,
+      dialogAction: 'add',
+    });
   }
 
   handleChange = (event) => {
@@ -105,33 +124,46 @@ class Events extends Component {
   handleSubmit = () => {
     this.setState({ openProgress: true });
 
-    var mainImage = this.props.firebase.storageRef().child(this.file.files[0].name);
-
-    mainImage.put(this.file.files[0])
-      .then(snapshot => {
-        mainImage.getDownloadURL()
-          .then(url => {
-            this.setState({ imageUrl: url, openProgress: false });
-            this.writeEvent();
-          });
-      });
-
+    if (this.file.files[0]) {
+      var mainImage = this.props.firebase.storageRef().child(this.file.files[0].name);
+      mainImage.put(this.file.files[0])
+	.then(snapshot => {
+	  mainImage.getDownloadURL()
+	    .then(url => {
+	      this.setState({ imageUrl: url, openProgress: false });
+	      this.writeEvent();
+	    });
+	});
+    } else {
+      this.writeEvent();
+    }
     this.handleClose();
   }
 
   writeEvent = () => {
-    this.props.firebase.events().add({
-      createdAt: this.props.firebase.fieldValue.serverTimestamp(),
-      title: this.state.title,
-      description: this.state.description,
-      imageUrl: this.state.imageUrl,
-    });
+    if (this.state.dialogAction === 'add') {
+      this.props.firebase.events().add({
+	createdAt: this.props.firebase.fieldValue.serverTimestamp(),
+	title: this.state.title,
+	description: this.state.description,
+	imageUrl: this.state.imageUrl,
+      });
+    } else {
+      this.props.firebase.event(this.state.currentEvent.uid).update({
+	title: this.state.title,
+	description: this.state.description,
+      });
+    }
 
     this.setState({
       openProgress: false,
       title: '',
       description: '',
     });
+  }
+
+  handleDelete = (event) => () => {
+    this.props.firebase.event(event.uid).delete();
   }
 
   handleTabChange = (event, newValue) => {
@@ -146,19 +178,16 @@ class Events extends Component {
 
     return (
       <div>
-	<AuthUserContext.Consumer>
-	  {authUser =>
-	   authUser ? (
-	     <div style={styles.buttonContainer}>
-	       <Button onClick={this.handleOpen}>
-		 Add Event
-	       </Button>
-	     </div>
-	   )
-	   :
-	   <div></div>
-	  }
-	</AuthUserContext.Consumer>
+	{this.context
+         ?
+	  <div style={styles.buttonContainer}>
+	    <Button onClick={this.handleOpen}>
+	      Add Event
+	    </Button>
+	  </div>
+	 :
+	 <div></div>
+	}
         <Dialog
           open={openProgress}
           fullWidth
@@ -177,7 +206,14 @@ class Events extends Component {
           maxWidth="sm"
         >
           <DialogContent>
-            <DialogTitle>Add new Event</DialogTitle>
+            <DialogTitle>
+	      {this.state.dialogAction === 'add'
+	       ?
+	       "Add new Event"
+	       :
+	       "Edit Event"
+	      }
+            </DialogTitle>
             <form>
 	      <TextField
 		name="title"
@@ -235,13 +271,35 @@ class Events extends Component {
 		   <Tab style={styles.tab} label="PASSED" />
 		 </Tabs>
 		 <div value={value} index={0} hidden={value !== 0}>
-		   {events.map(evt => (
-		     <div>
-		       <h3>{evt.title}</h3>
-		       <img src={evt.imageUrl} alt="event-image" style={styles.image} />
-		       <p>{evt.description}</p>
-		     </div>
-		   ))}
+		   <List>
+		     {events.map(evt => (
+		       <div>
+			 <ListItem alignItems="flex-start">
+			   <ListItemAvatar>
+			     <img src={evt.imageUrl} alt="" style={styles.image} />
+			   </ListItemAvatar>
+			   <ListItemText
+			     primary={evt.title}
+			     secondary={evt.description}
+			   />
+			 </ListItem>
+			 {this.context
+			  ?
+			  <div style={styles.buttons}>
+			    <Button onClick={this.handleEdit(evt)}>
+	                      Edit
+	                    </Button>
+			    <Button onClick={this.handleDelete(evt)}>
+	                      Delete
+	                    </Button>
+	                  </div>
+	                  :
+	                  <div></div>
+	                 }
+			 <Divider variant="inset" component="li" />
+                       </div>
+		     ))}
+                   </List>
 		 </div>
 		 <div value={value} index={1} hidden={value !== 1}>
                    Passed events come here
