@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import { compose } from 'recompose';
 import { withFirebase } from '../Firebase';
-import { withAuthorization } from '../Session';
 import { AuthUserContext } from '../Session';
 import Button from '@material-ui/core/Button';
 import Card from '@material-ui/core/Card';
@@ -23,12 +22,6 @@ import ListItemAvatar from '@material-ui/core/ListItemAvatar';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import TextField from '@material-ui/core/TextField';
-import {
-  MuiPickersUtilsProvider,
-  KeyboardTimePicker,
-  KeyboardDatePicker,
-} from '@material-ui/pickers';
-
 
 const styles = {
   buttons: {
