@@ -475,7 +475,7 @@ class Events extends Component {
 			>
 			  <CardActionArea>
                             <CardContent>
-			      <h3>{new Date(evt.eventDate.seconds*1000).toDateString()}</h3>
+			      <h3>{new Date(evt.eventFromDate.seconds*1000).toDateString()}</h3>
 			      <h4>{new Date(evt.eventFromDate.seconds*1000).toTimeString().slice(0,5)} - {new Date(evt.eventUntilDate.seconds*1000).toTimeString().slice(0,5)}</h4>
                               <h4>{evt.location}</h4>
                             </CardContent>
