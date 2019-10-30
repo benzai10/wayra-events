@@ -147,14 +147,14 @@ class Events extends Component {
   handleClose = () => {
     this.setState({
       open: false,
-      eventFromDate: '',
-      eventFromTime: '',
-      eventUntilDate: '',
-      eventUntilTime: '',
-      location: '',
-      title: '',
-      description: '',
-      imageUrl: '',
+      // eventFromDate: '',
+      // eventFromTime: '',
+      // eventUntilDate: '',
+      // eventUntilTime: '',
+      // location: '',
+      // title: '',
+      // description: '',
+      // imageUrl: '',
       dialogAction: 'add',
     });
   }

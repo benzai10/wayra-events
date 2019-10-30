@@ -15,7 +15,9 @@ const styles = {
 const Navigation = () => (
   <AppBar position="static">
     <Toolbar>
-      <img src={logo} alt="logo" style={styles.logo} />
+      <a href="https://de.wayra.co/">
+	<img src={logo} alt="logo" style={styles.logo} />
+      </a>
       <AuthUserContext.Consumer>
 	{authUser =>
 	 authUser ? <NavigationAuth /> : <NavigationNonAuth />
