@@ -140,6 +140,7 @@ class Events extends Component {
       location: event.location,
       title: event.title,
       description: event.description,
+      imageUrl: event.imageUrl,
     });
     this.handleOpen();
   }
@@ -336,8 +337,17 @@ class Events extends Component {
                 multiline
 		fullWidth
 	      />
-              <p style={{ marginTop: 15, marginBottom: 10 }}>Upload Event Image</p>
+              <p style={{ marginTop: 15, marginBottom: 10 }}>Upload Event Image or choose an image link</p>
               <input type="file" ref={this.setRef} />
+	      <TextField
+		name="imageUrl"
+		type="text"
+		label="Image Url"
+		placeholder="Enter image URL"
+		value={this.state.imageUrl}
+		onChange={this.handleChange}
+		fullWidth
+	      />
 	    </form>
 	    <DialogActions>
 	      <Button onClick={this.handleClose}>
