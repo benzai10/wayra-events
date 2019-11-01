@@ -5,14 +5,45 @@ import { SignUpLink } from '../SignUp';
 import { PasswordForgetLink } from '../PasswordForget';
 import { withFirebase } from '../Firebase';
 import * as ROUTES from '../../constants/routes';
+import isMobileDevice from '../../helpers';
+import Button from '@material-ui/core/Button';
+import Grid from '@material-ui/core/Grid';
+import TextField from "@material-ui/core/TextField";
+
+const styles = {
+  button: {
+    float: 'right',
+  },
+  form: {
+    textAlign: "left",
+    paddingBottom: 30,
+    fontSize: 13,
+  },
+  formField: {
+    marginBottom: 20,
+    fontSize: 14,
+    width: '100%',
+  },
+  title: {
+    textAlign: 'center',
+  }
+};
 
 const SignInPage = () => (
-  <div>
-    <h1>SignIn</h1>
-    <SignInForm />
-    <PasswordForgetLink />
-    <SignUpLink />
-  </div>
+  <Grid
+    container
+    spacing={0}
+    direction="row"
+    justify="center"
+    alignItems="center"
+  >
+    <Grid item xs={12} style={{ maxWidth: isMobileDevice() ? '100%' : 400 }}>
+      <h1 style={styles.title}>Sign in</h1>
+      <SignInForm />
+      <PasswordForgetLink />
+      <SignUpLink />
+    </Grid>
+  </Grid>
 );
 
 const INITIAL_STATE = {
@@ -51,25 +82,29 @@ class SignInFormBase extends Component {
     const isInvalid = password === '' || email === '';
 
     return (
-      <form onSubmit={this.onSubmit}>
-        <input
+      <form onSubmit={this.onSubmit} style={styles.form}>
+        <TextField
           name="email"
+          label="Email Address"
           value={email}
           onChange={this.onChange}
           type="text"
           placeholder="Email Address"
+          style={styles.formField}
         />
-        <input
+        <TextField
           name="password"
+          label="Password"
           value={password}
           onChange={this.onChange}
           type="password"
           placeholder="Password"
+          style={styles.formField}
         />
-        <button disabled={isInvalid} type="submit">
-          Sign In
-        </button>
         {error && <p>{error.message}</p>}
+        <Button disabled={isInvalid} type="submit" style={styles.button}>
+          Sign In
+        </Button>
       </form>
     );
   }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import SignOutButton from '../SignOut';
 import { AuthUserContext } from '../Session';
 import logo from "../../images/wayra-logo.png";
@@ -20,17 +20,18 @@ const Navigation = () => (
       </a>
       <AuthUserContext.Consumer>
 	{authUser =>
-	 authUser ? <NavigationAuth /> : <NavigationNonAuth />
+	 authUser ? <NavigationAuth user={authUser} /> : <NavigationNonAuth />
 	}
       </AuthUserContext.Consumer>
     </Toolbar>
   </AppBar>
 );
 
-const NavigationAuth = () => (
-  <div>
-    <SignOutButton style={{ float: 'right' }} />
-  </div>
+const NavigationAuth = (props) => (
+  <Fragment>
+    <span style={{ marginLeft: 'auto' }}>{props.user.email}</span>
+    <SignOutButton />
+  </Fragment>
 );
 
 const NavigationNonAuth = () => (

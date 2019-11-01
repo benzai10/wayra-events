@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { compose } from 'recompose';
 import { withFirebase } from '../Firebase';
 import { AuthUserContext } from '../Session';
+import isMobileDevice from '../../helpers';
 import Button from '@material-ui/core/Button';
 import Card from '@material-ui/core/Card';
 import CardActionArea from '@material-ui/core/CardActionArea';
@@ -50,13 +51,6 @@ const styles = {
     textAlign: 'center',
   },
 };
-
-function isMobileDevice() {
-  return (
-    typeof window.orientation !== "undefined" ||
-    navigator.userAgent.indexOf("IEMobile") !== -1
-  );
-}
 
 
 class Events extends Component {
